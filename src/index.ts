@@ -12,7 +12,7 @@ export interface Config {
 
 export const Config: Schema<Config> = Schema.object({
   unsplashKey: Schema.string().role('secret')
-    .description('Unsplash Access Key（免费 50次/小时）').required(),
+    .description('Unsplash Access Key（饮品用，免费 50次/小时）').required(),
   timeFilter: Schema.boolean()
     .description('按时间段过滤（早上不推火锅，晚上不推早餐）').default(true),
   useKeyword: Schema.boolean().description('启用关键词触发').default(true),
@@ -26,178 +26,142 @@ export const Config: Schema<Config> = Schema.object({
 
 export const name = 'll-eat'
 
-/* ────── 美团级菜单 + 多级搜索回退 ────── */
-
 type Meal = 'breakfast' | 'lunch' | 'dinner' | 'night'
 
 interface Dish {
-  name: string                    // 中文菜名（显示用）
-  meals: Meal[]                   // 适合时段
-  search: string[]                // 搜索词：中文 → 拼音 → 英文大类（依次尝试）
+  name: string
+  meals: Meal[]
+  search: string   // 下厨房搜索词 / Unsplash 搜索词
 }
 
+/* ────── 食物：下厨房搜图 ────── */
 const FOODS: Dish[] = [
-  // ─ 早餐 ─
-  { name: '油条豆浆', meals: ['breakfast'], search: ['油条', '油条豆浆', 'Chinese breakfast youtiao'] },
-  { name: '豆腐脑', meals: ['breakfast'], search: ['豆腐脑', '豆花', 'tofu pudding'] },
-  { name: '煎饼果子', meals: ['breakfast', 'lunch'], search: ['煎饼果子', '煎饼', 'Chinese crepe'] },
-  { name: '鸡蛋灌饼', meals: ['breakfast', 'lunch'], search: ['鸡蛋灌饼', '鸡蛋饼', 'Chinese egg pancake'] },
-  { name: '包子小米粥', meals: ['breakfast'], search: ['包子', '包子小米粥', 'steamed bun breakfast'] },
-  { name: '肠粉', meals: ['breakfast', 'lunch'], search: ['肠粉', 'cheung fun', 'rice noodle roll'] },
-  { name: '茶叶蛋', meals: ['breakfast', 'lunch'], search: ['茶叶蛋', '卤蛋', 'tea egg'] },
-  { name: '烧麦', meals: ['breakfast', 'lunch'], search: ['烧麦', '烧卖', 'shumai dumpling'] },
-  { name: '糯米饭团', meals: ['breakfast'], search: ['饭团', '糯米饭团', 'rice ball'] },
-  { name: '肉粽', meals: ['breakfast'], search: ['粽子', '肉粽', 'zongzi rice dumpling'] },
-  { name: '小笼包', meals: ['breakfast', 'lunch', 'dinner'], search: ['小笼包', '小笼', 'xiaolongbao'] },
-  { name: '蒸饺', meals: ['breakfast', 'lunch', 'dinner'], search: ['蒸饺', '饺子', 'steamed dumpling'] },
-
-  // ─ 盖饭/拌饭 ─
-  { name: '黄焖鸡米饭', meals: ['lunch', 'dinner'], search: ['黄焖鸡', '黄焖鸡米饭', 'braised chicken rice'] },
-  { name: '宫保鸡丁盖饭', meals: ['lunch', 'dinner'], search: ['宫保鸡丁', 'kung pao chicken'] },
-  { name: '鱼香肉丝盖饭', meals: ['lunch', 'dinner'], search: ['鱼香肉丝', 'shredded pork rice'] },
-  { name: '红烧肉盖饭', meals: ['lunch', 'dinner'], search: ['红烧肉', '红烧肉盖饭', 'braised pork belly'] },
-  { name: '番茄鸡蛋盖饭', meals: ['lunch', 'dinner'], search: ['番茄鸡蛋', '番茄炒蛋', 'tomato egg'] },
-  { name: '土豆牛肉盖饭', meals: ['lunch', 'dinner'], search: ['土豆牛肉', '土豆烧牛肉', 'potato beef stew'] },
-  { name: '回锅肉盖饭', meals: ['lunch', 'dinner'], search: ['回锅肉', 'twice cooked pork'] },
-  { name: '糖醋里脊盖饭', meals: ['lunch', 'dinner'], search: ['糖醋里脊', 'sweet sour pork'] },
-  { name: '麻婆豆腐盖饭', meals: ['lunch', 'dinner'], search: ['麻婆豆腐', 'mapo tofu'] },
-  { name: '卤肉饭', meals: ['lunch', 'dinner'], search: ['卤肉饭', '卤肉', 'braised pork rice'] },
-  { name: '咖喱鸡肉饭', meals: ['lunch', 'dinner'], search: ['咖喱鸡肉', '咖喱鸡饭', 'curry chicken rice'] },
-  { name: '黑椒牛柳盖饭', meals: ['lunch', 'dinner'], search: ['黑椒牛柳', '黑椒牛肉', 'beef pepper rice'] },
-
-  // ─ 炒饭 ─
-  { name: '蛋炒饭', meals: ['lunch', 'dinner', 'night'], search: ['蛋炒饭', '鸡蛋炒饭', 'egg fried rice'] },
-  { name: '扬州炒饭', meals: ['lunch', 'dinner', 'night'], search: ['扬州炒饭', 'fried rice Chinese'] },
-  { name: '虾仁炒饭', meals: ['lunch', 'dinner'], search: ['虾仁炒饭', '虾炒饭', 'shrimp fried rice'] },
-  { name: '酱油炒饭', meals: ['lunch', 'dinner', 'night'], search: ['酱油炒饭', 'soy sauce fried rice'] },
-  { name: '咖喱炒饭', meals: ['lunch', 'dinner'], search: ['咖喱炒饭', 'curry fried rice'] },
-
-  // ─ 面 ─
-  { name: '兰州拉面', meals: ['lunch', 'dinner', 'night'], search: ['兰州拉面', '牛肉拉面', 'Lanzhou noodle'] },
-  { name: '红烧牛肉面', meals: ['lunch', 'dinner', 'night'], search: ['红烧牛肉面', '牛肉面', 'beef noodle soup'] },
-  { name: '重庆小面', meals: ['lunch', 'dinner', 'night'], search: ['重庆小面', '小面', 'Chongqing noodle'] },
-  { name: '担担面', meals: ['lunch', 'dinner'], search: ['担担面', 'dan dan noodle'] },
-  { name: '炸酱面', meals: ['lunch', 'dinner'], search: ['炸酱面', 'zhajiang noodle', 'black bean noodle'] },
-  { name: '油泼面', meals: ['lunch', 'dinner'], search: ['油泼面', 'biang biang noodle'] },
-  { name: '热干面', meals: ['lunch', 'dinner'], search: ['热干面', 'hot dry noodle'] },
-  { name: '葱油拌面', meals: ['lunch', 'dinner'], search: ['葱油拌面', '葱油面', 'scallion oil noodle'] },
-  { name: '番茄鸡蛋面', meals: ['lunch', 'dinner'], search: ['番茄鸡蛋面', '番茄面', 'tomato egg noodle'] },
-  { name: '炒面', meals: ['lunch', 'dinner', 'night'], search: ['炒面', 'chow mein'] },
-  { name: '干炒牛河', meals: ['lunch', 'dinner', 'night'], search: ['干炒牛河', '河粉', 'beef chow fun'] },
-
-  // ─ 粉 ─
-  { name: '螺蛳粉', meals: ['lunch', 'dinner', 'night'], search: ['螺蛳粉', '螺蛳粉', 'snail noodle'] },
-  { name: '酸辣粉', meals: ['lunch', 'dinner', 'night'], search: ['酸辣粉', '酸辣粉', 'hot sour noodle'] },
-  { name: '桂林米粉', meals: ['lunch', 'dinner'], search: ['桂林米粉', '米粉', 'rice noodle soup'] },
-  { name: '过桥米线', meals: ['lunch', 'dinner'], search: ['过桥米线', '米线', 'crossing bridge noodle'] },
-  { name: '新疆炒米粉', meals: ['lunch', 'dinner', 'night'], search: ['新疆炒米粉', '炒米粉', 'rice noodle stir fry'] },
-  { name: '花甲粉', meals: ['lunch', 'dinner', 'night'], search: ['花甲粉', '花甲', 'clam noodle'] },
-
-  // ─ 饺子/包子 ─
-  { name: '水饺', meals: ['lunch', 'dinner', 'night'], search: ['水饺', '饺子', 'Chinese dumpling'] },
-  { name: '煎饺', meals: ['lunch', 'dinner', 'night'], search: ['煎饺', '锅贴', 'pan fried dumpling'] },
-  { name: '生煎包', meals: ['breakfast', 'lunch', 'dinner'], search: ['生煎包', '生煎', 'sheng jian bao'] },
-  { name: '鲜肉包子', meals: ['breakfast', 'lunch', 'dinner'], search: ['包子', '鲜肉包', 'steamed pork bun'] },
-  { name: '馄饨', meals: ['breakfast', 'lunch', 'dinner', 'night'], search: ['馄饨', '抄手', 'wonton soup'] },
-  { name: '红油抄手', meals: ['lunch', 'dinner', 'night'], search: ['红油抄手', '抄手', 'chili wonton'] },
-
-  // ─ 炒菜 ─
-  { name: '西红柿炒鸡蛋', meals: ['lunch', 'dinner'], search: ['西红柿炒鸡蛋', '番茄炒蛋', 'tomato scrambled egg'] },
-  { name: '酸辣土豆丝', meals: ['lunch', 'dinner'], search: ['酸辣土豆丝', '土豆丝', 'shredded potato'] },
-  { name: '宫保鸡丁', meals: ['lunch', 'dinner'], search: ['宫保鸡丁', '宫保鸡', 'kung pao chicken'] },
-  { name: '鱼香肉丝', meals: ['lunch', 'dinner'], search: ['鱼香肉丝', '鱼香肉丝', 'shredded pork garlic'] },
-  { name: '麻婆豆腐', meals: ['lunch', 'dinner'], search: ['麻婆豆腐', '麻婆豆腐', 'mapo tofu'] },
-  { name: '地三鲜', meals: ['lunch', 'dinner'], search: ['地三鲜', '地三鲜', 'stir fry potato eggplant'] },
-  { name: '手撕包菜', meals: ['lunch', 'dinner'], search: ['手撕包菜', '包菜', 'stir fry cabbage'] },
-  { name: '干煸四季豆', meals: ['lunch', 'dinner'], search: ['干煸四季豆', '四季豆', 'stir fry green bean'] },
-  { name: '家常豆腐', meals: ['lunch', 'dinner'], search: ['家常豆腐', '豆腐', 'home style tofu'] },
-  { name: '蒜蓉西兰花', meals: ['lunch', 'dinner'], search: ['蒜蓉西兰花', '西兰花', 'broccoli garlic stir fry'] },
-  { name: '蚝油生菜', meals: ['lunch', 'dinner'], search: ['蚝油生菜', '生菜', 'lettuce oyster sauce'] },
-  { name: '水煮肉片', meals: ['lunch', 'dinner'], search: ['水煮肉片', '水煮肉', 'Sichuan boiled beef'] },
-  { name: '锅包肉', meals: ['lunch', 'dinner'], search: ['锅包肉', '锅包肉', 'guo bao rou'] },
-  { name: '农家小炒肉', meals: ['lunch', 'dinner'], search: ['农家小炒肉', '小炒肉', 'stir fry pork chili'] },
-  { name: '干锅花菜', meals: ['lunch', 'dinner'], search: ['干锅花菜', '花菜', 'dry pot cauliflower'] },
-
-  // ─ 煲/粥 ─
-  { name: '煲仔饭', meals: ['lunch', 'dinner'], search: ['煲仔饭', '煲仔饭', 'claypot rice'] },
-  { name: '砂锅米线', meals: ['lunch', 'dinner'], search: ['砂锅米线', '砂锅', 'claypot noodle'] },
-  { name: '皮蛋瘦肉粥', meals: ['breakfast', 'dinner', 'night'], search: ['皮蛋瘦肉粥', '粥', 'congee'] },
-  { name: '八宝粥', meals: ['breakfast', 'night'], search: ['八宝粥', 'mixed congee'] },
-  { name: '小米南瓜粥', meals: ['breakfast', 'dinner'], search: ['小米南瓜粥', '南瓜粥', 'pumpkin porridge'] },
-
-  // ─ 麻辣烫/冒菜/香锅 ─
-  { name: '麻辣烫', meals: ['lunch', 'dinner', 'night'], search: ['麻辣烫', '麻辣烫', 'malatang'] },
-  { name: '冒菜', meals: ['lunch', 'dinner', 'night'], search: ['冒菜', '冒菜', 'maocai Sichuan'] },
-  { name: '麻辣香锅', meals: ['lunch', 'dinner', 'night'], search: ['麻辣香锅', '香锅', 'mala spicy pot'] },
-  { name: '关东煮', meals: ['lunch', 'dinner', 'night'], search: ['关东煮', '关东煮', 'oden'] },
-
-  // ─ 炸鸡/快餐 ─
-  { name: '香辣鸡腿堡', meals: ['lunch', 'dinner', 'night'], search: ['鸡腿堡', '汉堡', 'chicken burger'] },
-  { name: '炸鸡排', meals: ['lunch', 'dinner', 'night'], search: ['炸鸡排', '鸡排', 'fried chicken cutlet'] },
-  { name: '韩式炸鸡', meals: ['lunch', 'dinner', 'night'], search: ['韩式炸鸡', '炸鸡', 'Korean fried chicken'] },
-  { name: '鸡米花', meals: ['lunch', 'dinner', 'night'], search: ['鸡米花', 'popcorn chicken'] },
-  { name: '炸薯条', meals: ['lunch', 'dinner', 'night'], search: ['薯条', 'french fries'] },
-
-  // ─ 烧烤/铁板（侧重夜宵） ─
-  { name: '烤羊肉串', meals: ['dinner', 'night'], search: ['羊肉串', '烤羊肉', 'lamb skewer'] },
-  { name: '烤鸡翅', meals: ['dinner', 'night'], search: ['烤鸡翅', '烤翅', 'grilled chicken wing'] },
-  { name: '烤鱿鱼', meals: ['dinner', 'night'], search: ['烤鱿鱼', '鱿鱼', 'grilled squid'] },
-  { name: '烤面筋', meals: ['dinner', 'night'], search: ['烤面筋', '面筋', 'grilled gluten'] },
-  { name: '烤茄子', meals: ['dinner', 'night'], search: ['烤茄子', 'grilled eggplant'] },
-  { name: '铁板鱿鱼', meals: ['dinner', 'night'], search: ['铁板鱿鱼', 'teppanyaki squid'] },
-  { name: '烤冷面', meals: ['dinner', 'night'], search: ['烤冷面', '烤冷面', 'grilled cold noodle'] },
-
-  // ─ 小吃 ─
-  { name: '肉夹馍', meals: ['lunch', 'dinner', 'night'], search: ['肉夹馍', '肉夹馍', 'roujiamo Chinese burger'] },
-  { name: '凉皮', meals: ['lunch', 'dinner'], search: ['凉皮', '凉皮', 'liangpi cold noodle'] },
-  { name: '臭豆腐', meals: ['dinner', 'night'], search: ['臭豆腐', 'stinky tofu'] },
-  { name: '手抓饼', meals: ['breakfast', 'lunch', 'dinner', 'night'], search: ['手抓饼', '手抓饼', 'Chinese pancake'] },
-  { name: '狼牙土豆', meals: ['dinner', 'night'], search: ['狼牙土豆', '土豆条', 'crispy potato'] },
-  { name: '煎饼果子', meals: ['breakfast', 'lunch'], search: ['煎饼果子', '煎饼', 'jianbing'] },
-
-  // ─ 火锅 ─
-  { name: '重庆火锅', meals: ['dinner', 'night'], search: ['重庆火锅', '火锅', 'Chinese hotpot'] },
-  { name: '串串香', meals: ['dinner', 'night'], search: ['串串香', '串串', 'chuanchuan skewer'] },
-
-  // ─ 地方特色 ─
-  { name: '北京烤鸭', meals: ['lunch', 'dinner'], search: ['北京烤鸭', '烤鸭', 'Peking duck'] },
-  { name: '白切鸡', meals: ['lunch', 'dinner'], search: ['白切鸡', '白斩鸡', 'Cantonese chicken'] },
-  { name: '大盘鸡', meals: ['lunch', 'dinner'], search: ['大盘鸡', '新疆大盘鸡', 'big plate chicken'] },
-  { name: '叉烧饭', meals: ['lunch', 'dinner'], search: ['叉烧', '叉烧饭', 'char siu rice'] },
-
-  // ─ 快餐 ─
-  { name: '两荤一素快餐', meals: ['lunch', 'dinner'], search: ['快餐', '中式快餐', 'Chinese lunch box'] },
-  { name: '三荤一素套餐', meals: ['lunch', 'dinner'], search: ['套餐', '盒饭', 'Chinese combo meal'] },
+  { name: '油条豆浆', meals: ['breakfast'], search: '油条' },
+  { name: '豆腐脑', meals: ['breakfast'], search: '豆腐脑' },
+  { name: '煎饼果子', meals: ['breakfast', 'lunch'], search: '煎饼果子' },
+  { name: '鸡蛋灌饼', meals: ['breakfast', 'lunch'], search: '鸡蛋灌饼' },
+  { name: '包子', meals: ['breakfast', 'lunch', 'dinner'], search: '包子' },
+  { name: '肠粉', meals: ['breakfast', 'lunch'], search: '肠粉' },
+  { name: '茶叶蛋', meals: ['breakfast', 'lunch'], search: '茶叶蛋' },
+  { name: '烧麦', meals: ['breakfast', 'lunch'], search: '烧麦' },
+  { name: '肉粽', meals: ['breakfast'], search: '肉粽' },
+  { name: '小笼包', meals: ['breakfast', 'lunch', 'dinner'], search: '小笼包' },
+  { name: '蒸饺', meals: ['breakfast', 'lunch', 'dinner'], search: '蒸饺' },
+  { name: '黄焖鸡米饭', meals: ['lunch', 'dinner'], search: '黄焖鸡' },
+  { name: '宫保鸡丁盖饭', meals: ['lunch', 'dinner'], search: '宫保鸡丁' },
+  { name: '鱼香肉丝盖饭', meals: ['lunch', 'dinner'], search: '鱼香肉丝' },
+  { name: '红烧肉盖饭', meals: ['lunch', 'dinner'], search: '红烧肉' },
+  { name: '番茄鸡蛋盖饭', meals: ['lunch', 'dinner'], search: '番茄炒蛋' },
+  { name: '土豆牛肉盖饭', meals: ['lunch', 'dinner'], search: '土豆烧牛肉' },
+  { name: '回锅肉盖饭', meals: ['lunch', 'dinner'], search: '回锅肉' },
+  { name: '糖醋里脊盖饭', meals: ['lunch', 'dinner'], search: '糖醋里脊' },
+  { name: '麻婆豆腐盖饭', meals: ['lunch', 'dinner'], search: '麻婆豆腐' },
+  { name: '卤肉饭', meals: ['lunch', 'dinner'], search: '卤肉饭' },
+  { name: '咖喱鸡肉饭', meals: ['lunch', 'dinner'], search: '咖喱鸡' },
+  { name: '黑椒牛柳盖饭', meals: ['lunch', 'dinner'], search: '黑椒牛柳' },
+  { name: '叉烧饭', meals: ['lunch', 'dinner'], search: '叉烧' },
+  { name: '蛋炒饭', meals: ['lunch', 'dinner', 'night'], search: '蛋炒饭' },
+  { name: '扬州炒饭', meals: ['lunch', 'dinner', 'night'], search: '扬州炒饭' },
+  { name: '虾仁炒饭', meals: ['lunch', 'dinner'], search: '虾仁炒饭' },
+  { name: '酱油炒饭', meals: ['lunch', 'dinner', 'night'], search: '酱油炒饭' },
+  { name: '咖喱炒饭', meals: ['lunch', 'dinner'], search: '咖喱炒饭' },
+  { name: '兰州拉面', meals: ['lunch', 'dinner', 'night'], search: '兰州拉面' },
+  { name: '红烧牛肉面', meals: ['lunch', 'dinner', 'night'], search: '红烧牛肉面' },
+  { name: '重庆小面', meals: ['lunch', 'dinner', 'night'], search: '重庆小面' },
+  { name: '担担面', meals: ['lunch', 'dinner'], search: '担担面' },
+  { name: '炸酱面', meals: ['lunch', 'dinner'], search: '炸酱面' },
+  { name: '油泼面', meals: ['lunch', 'dinner'], search: '油泼面' },
+  { name: '热干面', meals: ['lunch', 'dinner'], search: '热干面' },
+  { name: '葱油拌面', meals: ['lunch', 'dinner'], search: '葱油拌面' },
+  { name: '番茄鸡蛋面', meals: ['lunch', 'dinner'], search: '番茄鸡蛋面' },
+  { name: '炒面', meals: ['lunch', 'dinner', 'night'], search: '炒面' },
+  { name: '干炒牛河', meals: ['lunch', 'dinner', 'night'], search: '干炒牛河' },
+  { name: '螺蛳粉', meals: ['lunch', 'dinner', 'night'], search: '螺蛳粉' },
+  { name: '酸辣粉', meals: ['lunch', 'dinner', 'night'], search: '酸辣粉' },
+  { name: '桂林米粉', meals: ['lunch', 'dinner'], search: '桂林米粉' },
+  { name: '过桥米线', meals: ['lunch', 'dinner'], search: '过桥米线' },
+  { name: '新疆炒米粉', meals: ['lunch', 'dinner', 'night'], search: '新疆炒米粉' },
+  { name: '花甲粉', meals: ['lunch', 'dinner', 'night'], search: '花甲粉' },
+  { name: '水饺', meals: ['lunch', 'dinner', 'night'], search: '饺子' },
+  { name: '煎饺', meals: ['lunch', 'dinner', 'night'], search: '煎饺' },
+  { name: '生煎包', meals: ['breakfast', 'lunch', 'dinner'], search: '生煎包' },
+  { name: '馄饨', meals: ['breakfast', 'lunch', 'dinner', 'night'], search: '馄饨' },
+  { name: '红油抄手', meals: ['lunch', 'dinner', 'night'], search: '红油抄手' },
+  { name: '西红柿炒鸡蛋', meals: ['lunch', 'dinner'], search: '西红柿炒鸡蛋' },
+  { name: '酸辣土豆丝', meals: ['lunch', 'dinner'], search: '酸辣土豆丝' },
+  { name: '鱼香肉丝', meals: ['lunch', 'dinner'], search: '鱼香肉丝' },
+  { name: '地三鲜', meals: ['lunch', 'dinner'], search: '地三鲜' },
+  { name: '手撕包菜', meals: ['lunch', 'dinner'], search: '手撕包菜' },
+  { name: '干煸四季豆', meals: ['lunch', 'dinner'], search: '干煸四季豆' },
+  { name: '家常豆腐', meals: ['lunch', 'dinner'], search: '家常豆腐' },
+  { name: '蒜蓉西兰花', meals: ['lunch', 'dinner'], search: '蒜蓉西兰花' },
+  { name: '蚝油生菜', meals: ['lunch', 'dinner'], search: '蚝油生菜' },
+  { name: '水煮肉片', meals: ['lunch', 'dinner'], search: '水煮肉片' },
+  { name: '锅包肉', meals: ['lunch', 'dinner'], search: '锅包肉' },
+  { name: '农家小炒肉', meals: ['lunch', 'dinner'], search: '小炒肉' },
+  { name: '干锅花菜', meals: ['lunch', 'dinner'], search: '干锅花菜' },
+  { name: '煲仔饭', meals: ['lunch', 'dinner'], search: '煲仔饭' },
+  { name: '砂锅米线', meals: ['lunch', 'dinner'], search: '砂锅米线' },
+  { name: '皮蛋瘦肉粥', meals: ['breakfast', 'dinner', 'night'], search: '皮蛋瘦肉粥' },
+  { name: '八宝粥', meals: ['breakfast', 'night'], search: '八宝粥' },
+  { name: '麻辣烫', meals: ['lunch', 'dinner', 'night'], search: '麻辣烫' },
+  { name: '冒菜', meals: ['lunch', 'dinner', 'night'], search: '冒菜' },
+  { name: '麻辣香锅', meals: ['lunch', 'dinner', 'night'], search: '麻辣香锅' },
+  { name: '关东煮', meals: ['lunch', 'dinner', 'night'], search: '关东煮' },
+  { name: '鸡腿堡', meals: ['lunch', 'dinner', 'night'], search: '鸡腿汉堡' },
+  { name: '炸鸡排', meals: ['lunch', 'dinner', 'night'], search: '炸鸡排' },
+  { name: '韩式炸鸡', meals: ['lunch', 'dinner', 'night'], search: '韩式炸鸡' },
+  { name: '鸡米花', meals: ['lunch', 'dinner', 'night'], search: '鸡米花' },
+  { name: '炸薯条', meals: ['lunch', 'dinner', 'night'], search: '炸薯条' },
+  { name: '烤羊肉串', meals: ['dinner', 'night'], search: '烤羊肉串' },
+  { name: '烤鸡翅', meals: ['dinner', 'night'], search: '烤鸡翅' },
+  { name: '烤鱿鱼', meals: ['dinner', 'night'], search: '烤鱿鱼' },
+  { name: '烤面筋', meals: ['dinner', 'night'], search: '烤面筋' },
+  { name: '烤茄子', meals: ['dinner', 'night'], search: '烤茄子' },
+  { name: '铁板鱿鱼', meals: ['dinner', 'night'], search: '铁板鱿鱼' },
+  { name: '烤冷面', meals: ['dinner', 'night'], search: '烤冷面' },
+  { name: '肉夹馍', meals: ['lunch', 'dinner', 'night'], search: '肉夹馍' },
+  { name: '凉皮', meals: ['lunch', 'dinner'], search: '凉皮' },
+  { name: '臭豆腐', meals: ['dinner', 'night'], search: '臭豆腐' },
+  { name: '手抓饼', meals: ['breakfast', 'lunch', 'dinner', 'night'], search: '手抓饼' },
+  { name: '狼牙土豆', meals: ['dinner', 'night'], search: '狼牙土豆' },
+  { name: '重庆火锅', meals: ['dinner', 'night'], search: '火锅' },
+  { name: '串串香', meals: ['dinner', 'night'], search: '串串香' },
+  { name: '北京烤鸭', meals: ['lunch', 'dinner'], search: '北京烤鸭' },
+  { name: '白切鸡', meals: ['lunch', 'dinner'], search: '白切鸡' },
+  { name: '新疆大盘鸡', meals: ['lunch', 'dinner'], search: '大盘鸡' },
+  { name: '猪肉白菜炖粉条', meals: ['lunch', 'dinner'], search: '猪肉炖粉条' },
+  { name: '两荤一素快餐', meals: ['lunch', 'dinner'], search: '盒饭快餐' },
+  { name: '食堂自选菜', meals: ['lunch', 'dinner'], search: '食堂菜' },
 ]
 
+/* ────── 饮品：Unsplash 搜图（下厨房没有饮料图） ────── */
 const DRINKS: Dish[] = [
-  { name: '珍珠奶茶', meals: ['lunch', 'dinner', 'night'], search: ['珍珠奶茶', 'bubble tea'] },
-  { name: '黑糖珍珠奶茶', meals: ['lunch', 'dinner', 'night'], search: ['黑糖珍珠', 'brown sugar boba'] },
-  { name: '椰果奶茶', meals: ['lunch', 'dinner', 'night'], search: ['椰果奶茶', 'coconut jelly tea'] },
-  { name: '芋圆奶茶', meals: ['lunch', 'dinner', 'night'], search: ['芋圆奶茶', 'taro ball tea'] },
-  { name: '抹茶奶茶', meals: ['lunch', 'dinner'], search: ['抹茶奶茶', 'matcha latte'] },
-  { name: '杨枝甘露', meals: ['lunch', 'dinner', 'night'], search: ['杨枝甘露', 'mango sago'] },
-  { name: '烧仙草', meals: ['dinner', 'night'], search: ['烧仙草', 'grass jelly dessert'] },
-  { name: '冰粉', meals: ['dinner', 'night'], search: ['冰粉', 'bingfen ice jelly'] },
-  { name: '柠檬水', meals: ['lunch', 'dinner', 'night'], search: ['柠檬水', 'lemonade'] },
-  { name: '金桔柠檬', meals: ['lunch', 'dinner', 'night'], search: ['金桔柠檬', 'kumquat lemon'] },
-  { name: '鲜榨橙汁', meals: ['breakfast', 'lunch', 'dinner'], search: ['鲜榨橙汁', 'orange juice'] },
-  { name: '西瓜汁', meals: ['dinner', 'night'], search: ['西瓜汁', 'watermelon juice'] },
-  { name: '芒果汁', meals: ['lunch', 'dinner'], search: ['芒果汁', 'mango juice'] },
-  { name: '美式咖啡', meals: ['breakfast', 'lunch'], search: ['美式咖啡', 'americano coffee'] },
-  { name: '拿铁', meals: ['breakfast', 'lunch', 'dinner'], search: ['拿铁', 'latte coffee'] },
-  { name: '生椰拿铁', meals: ['lunch', 'dinner'], search: ['生椰拿铁', 'coconut latte'] },
-  { name: '冰美式', meals: ['lunch', 'dinner'], search: ['冰美式', 'iced americano'] },
-  { name: '冰红茶', meals: ['lunch', 'dinner', 'night'], search: ['冰红茶', 'iced tea'] },
-  { name: '茉莉花茶', meals: ['breakfast', 'lunch', 'dinner'], search: ['茉莉花茶', 'jasmine tea'] },
-  { name: '蜜桃乌龙茶', meals: ['lunch', 'dinner'], search: ['蜜桃乌龙', 'peach oolong tea'] },
-  { name: '酸奶', meals: ['breakfast', 'lunch', 'dinner'], search: ['酸奶', 'yogurt'] },
-  { name: '冰可乐', meals: ['lunch', 'dinner', 'night'], search: ['冰可乐', 'coca cola'] },
-  { name: '北冰洋', meals: ['lunch', 'dinner', 'night'], search: ['北冰洋汽水', 'orange soda'] },
-  { name: '青岛啤酒', meals: ['dinner', 'night'], search: ['青岛啤酒', 'tsingtao beer'] },
-  { name: '酸梅汤', meals: ['lunch', 'dinner', 'night'], search: ['酸梅汤', 'sour plum drink'] },
-  { name: '椰汁', meals: ['lunch', 'dinner', 'night'], search: ['椰汁', 'coconut water'] },
-  { name: '矿泉水', meals: ['breakfast', 'lunch', 'dinner', 'night'], search: ['矿泉水', 'mineral water'] },
+  { name: '珍珠奶茶', meals: ['lunch', 'dinner', 'night'], search: 'bubble tea' },
+  { name: '黑糖珍珠奶茶', meals: ['lunch', 'dinner', 'night'], search: 'brown sugar boba' },
+  { name: '芋圆奶茶', meals: ['lunch', 'dinner', 'night'], search: 'taro bubble tea' },
+  { name: '抹茶奶茶', meals: ['lunch', 'dinner'], search: 'matcha latte' },
+  { name: '杨枝甘露', meals: ['lunch', 'dinner', 'night'], search: 'mango sago dessert' },
+  { name: '烧仙草', meals: ['dinner', 'night'], search: 'grass jelly dessert' },
+  { name: '冰粉', meals: ['dinner', 'night'], search: 'ice jelly dessert' },
+  { name: '柠檬水', meals: ['lunch', 'dinner', 'night'], search: 'lemonade drink' },
+  { name: '鲜榨橙汁', meals: ['breakfast', 'lunch', 'dinner'], search: 'fresh orange juice' },
+  { name: '西瓜汁', meals: ['dinner', 'night'], search: 'watermelon juice' },
+  { name: '芒果汁', meals: ['lunch', 'dinner'], search: 'mango juice' },
+  { name: '美式咖啡', meals: ['breakfast', 'lunch'], search: 'americano coffee' },
+  { name: '拿铁', meals: ['breakfast', 'lunch', 'dinner'], search: 'latte coffee art' },
+  { name: '生椰拿铁', meals: ['lunch', 'dinner'], search: 'coconut latte' },
+  { name: '冰美式', meals: ['lunch', 'dinner'], search: 'iced americano' },
+  { name: '冰红茶', meals: ['lunch', 'dinner', 'night'], search: 'iced tea lemon' },
+  { name: '茉莉花茶', meals: ['breakfast', 'lunch', 'dinner'], search: 'jasmine tea chinese' },
+  { name: '蜜桃乌龙茶', meals: ['lunch', 'dinner'], search: 'peach tea drink' },
+  { name: '酸奶', meals: ['breakfast', 'lunch', 'dinner'], search: 'yogurt cup' },
+  { name: '冰可乐', meals: ['lunch', 'dinner', 'night'], search: 'coca cola drink' },
+  { name: '北冰洋', meals: ['lunch', 'dinner', 'night'], search: 'orange soda bottle' },
+  { name: '青岛啤酒', meals: ['dinner', 'night'], search: 'beer glass pub' },
+  { name: '酸梅汤', meals: ['lunch', 'dinner', 'night'], search: 'sour plum drink' },
+  { name: '椰汁', meals: ['lunch', 'dinner', 'night'], search: 'coconut water drink' },
+  { name: '矿泉水', meals: ['breakfast', 'lunch', 'dinner', 'night'], search: 'mineral water' },
 ]
 
 interface CachedItem {
@@ -231,29 +195,57 @@ export function apply(ctx: Context, config: Config) {
     return filtered.length ? filtered : list
   }
 
-  /* ── Unsplash 多级搜索 ── */
-  async function searchUnsplash(queries: string[]): Promise<string | null> {
-    for (const q of queries) {
-      try {
-        const res = await ctx.http.get<{
-          results?: Array<{ urls: { regular: string }; links: { download_location: string } }>
-        }>(
-          'https://api.unsplash.com/search/photos',
-          {
-            params: { query: q, per_page: 5, orientation: 'squarish' },
-            headers: { Authorization: `Client-ID ${config.unsplashKey}` },
-            responseType: 'json',
-            timeout: 10000,
-          },
-        )
-        const results = res?.results
-        if (results?.length) {
-          const img = pickOne(results)
-          // 触发下载计数
-          try { ctx.http.get(img.links.download_location, { headers: { Authorization: `Client-ID ${config.unsplashKey}` }, timeout: 5000 }) } catch { /* */ }
-          return img.urls.regular
-        }
-      } catch { /* 下一个搜索词 */ }
+  /* ── 从下厨房 HTML 中提取图片 URL ── */
+  function extractXcfImages(html: string): string[] {
+    const urls: string[] = []
+    const re = /https?:\/\/i2\.chuimg\.com\/[a-f0-9]+_\d+w_\d+h\.jpg[^"'\s]*/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(html)) !== null) {
+      urls.push(m[0])
+    }
+    return urls
+  }
+
+  /* ── 下厨房搜图 ── */
+  async function searchXcf(keyword: string): Promise<string | null> {
+    try {
+      const url = `https://www.xiachufang.com/search/?keyword=${encodeURIComponent(keyword)}`
+      const html: string = await ctx.http.get(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KoishiBot/1.0)' },
+        responseType: 'text',
+        timeout: 10000,
+      })
+      const imgs = extractXcfImages(html)
+      if (imgs.length) return imgs[0]
+      return null
+    } catch (e) {
+      logger.debug(`下厨房搜索失败 [${keyword}]:`, e)
+      return null
+    }
+  }
+
+  /* ── Unsplash 搜图（饮品用） ── */
+  async function searchUnsplash(query: string): Promise<string | null> {
+    try {
+      const res = await ctx.http.get<{
+        results?: Array<{ urls: { regular: string }; links: { download_location: string } }>
+      }>(
+        'https://api.unsplash.com/search/photos',
+        {
+          params: { query, per_page: 5, orientation: 'squarish' },
+          headers: { Authorization: `Client-ID ${config.unsplashKey}` },
+          responseType: 'json',
+          timeout: 10000,
+        },
+      )
+      const results = res?.results
+      if (results?.length) {
+        const img = results[Math.floor(Math.random() * results.length)]
+        try { ctx.http.get(img.links.download_location, { headers: { Authorization: `Client-ID ${config.unsplashKey}` }, timeout: 5000 }) } catch { /* */ }
+        return img.urls.regular
+      }
+    } catch (e) {
+      logger.debug(`Unsplash 失败 [${query}]:`, e)
     }
     return null
   }
@@ -263,46 +255,48 @@ export function apply(ctx: Context, config: Config) {
     if (refreshing) return
     refreshing = true
     try {
+      const meal = currentMeal()
+      const mealName = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', night: '夜宵' }[meal]
+
+      // 食物：下厨房
       const foods: CachedItem[] = []
       const fDishes = filterDishes(FOODS)
-      const fSeen = new Map<string, string>() // search[0] → imageUrl
+      const fSeen = new Map<string, string>()
       for (const d of fDishes) {
-        const key = d.search[0]
-        if (fSeen.has(key)) {
-          foods.push({ name: d.name, imageUrl: fSeen.get(key)! })
+        if (fSeen.has(d.search)) {
+          foods.push({ name: d.name, imageUrl: fSeen.get(d.search)! })
           continue
         }
-        const img = await searchUnsplash(d.search)
+        const img = await searchXcf(d.search)
         if (img) {
-          fSeen.set(key, img)
-          for (const dd of fDishes.filter(x => x.search[0] === key)) {
+          fSeen.set(d.search, img)
+          for (const dd of fDishes.filter(x => x.search === d.search)) {
             foods.push({ name: dd.name, imageUrl: img })
           }
         }
       }
       if (foods.length) foodCache = foods
+      logger.info(`[${mealName}] 下厨房 食物 ${foodCache.length} 条`)
 
+      // 饮品：Unsplash
       const drinks: CachedItem[] = []
       const dDishes = filterDishes(DRINKS)
       const dSeen = new Map<string, string>()
       for (const d of dDishes) {
-        const key = d.search[0]
-        if (dSeen.has(key)) {
-          drinks.push({ name: d.name, imageUrl: dSeen.get(key)! })
+        if (dSeen.has(d.search)) {
+          drinks.push({ name: d.name, imageUrl: dSeen.get(d.search)! })
           continue
         }
         const img = await searchUnsplash(d.search)
         if (img) {
-          dSeen.set(key, img)
-          for (const dd of dDishes.filter(x => x.search[0] === key)) {
+          dSeen.set(d.search, img)
+          for (const dd of dDishes.filter(x => x.search === d.search)) {
             drinks.push({ name: dd.name, imageUrl: img })
           }
         }
       }
       if (drinks.length) drinkCache = drinks
-
-      const mealName = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', night: '夜宵' }[currentMeal()]
-      logger.info(`缓存刷新（${mealName}）：食物 ${foodCache.length} 条，饮品 ${drinkCache.length} 条`)
+      logger.info(`[${mealName}] Unsplash 饮品 ${drinkCache.length} 条`)
     } catch (e) {
       logger.warn('刷新失败:', e)
     } finally {
@@ -354,5 +348,5 @@ export function apply(ctx: Context, config: Config) {
     })
   }
 
-  logger.info(`已启动：${FOODS.length} 食物 ${DRINKS.length} 饮品，时段${config.timeFilter ? '过滤开' : '关'}`)
+  logger.info(`已启动：${FOODS.length} 食物(下厨房) ${DRINKS.length} 饮品(Unsplash) 时段${config.timeFilter ? '开' : '关'}`)
 }
