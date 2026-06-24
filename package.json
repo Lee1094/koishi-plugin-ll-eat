@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-ll-eat",
-  "version": "1.3.0",
-  "description": "今天吃什么/喝什么 — 对接 Pexels API，高质量美食饮品图片，建议吃XXX/建议喝XXX",
+  "version": "2.0.0",
+  "description": "今天吃什么/喝什么 — Bing 中文搜图，按时间段推荐，美团级菜单",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": ["lib"],
@@ -14,7 +14,7 @@
   "keywords": ["koishi", "koishi-plugin", "food", "eat", "吃什么"],
   "koishi": {
     "description": {
-      "zh": "今天吃什么/喝什么，对接 Pexels API，随机返回高质量美食饮品图片，显示建议吃XXX"
+      "zh": "今天吃什么/喝什么，Bing 中文搜图精准匹配，按早餐/午餐/晚餐/夜宵时段推荐，100+ 道美团级菜品"
     }
   },
   "peerDependencies": {
