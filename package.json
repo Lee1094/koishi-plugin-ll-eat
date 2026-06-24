@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-ll-eat",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "今天吃什么/喝什么 — 下厨房搜美食图 + Unsplash搜饮品，按时间段推荐",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",

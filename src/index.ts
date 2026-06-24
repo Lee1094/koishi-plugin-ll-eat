@@ -211,15 +211,20 @@ export function apply(ctx: Context, config: Config) {
     try {
       const url = `https://www.xiachufang.com/search/?keyword=${encodeURIComponent(keyword)}`
       const html: string = await ctx.http.get(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KoishiBot/1.0)' },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml',
+          'Accept-Language': 'zh-CN,zh;q=0.9',
+        },
         responseType: 'text',
-        timeout: 10000,
+        timeout: 15000,
       })
       const imgs = extractXcfImages(html)
       if (imgs.length) return imgs[0]
+      logger.warn(`下厨房 无图 [${keyword}]`)
       return null
-    } catch (e) {
-      logger.debug(`下厨房搜索失败 [${keyword}]:`, e)
+    } catch (e: any) {
+      logger.warn(`下厨房 失败 [${keyword}]: ${e?.message || e}`)
       return null
     }
   }
@@ -326,10 +331,15 @@ export function apply(ctx: Context, config: Config) {
   setInterval(() => refreshCache(), 3 * 60 * 60 * 1000)
 
   if (config.useCommand) {
-    const cmd = ctx.command(config.commandName)
-      .alias('吃', '喝', '吃啥', '喝啥', '吃什么', '喝什么')
-    cmd.subcommand('.food', '今天吃什么').action(async () => sendFood())
-    cmd.subcommand('.drink', '今天喝什么').action(async () => sendDrink())
+    // 吃 → 直接出食物建议
+    ctx.command(`${config.commandName}.food`, '今天吃什么')
+      .alias('吃', '吃啥', '吃什么')
+      .action(async () => sendFood())
+
+    // 喝 → 直接出饮品建议
+    ctx.command(`${config.commandName}.drink`, '今天喝什么')
+      .alias('喝', '喝啥', '喝什么')
+      .action(async () => sendDrink())
   }
 
   if (config.useKeyword) {
