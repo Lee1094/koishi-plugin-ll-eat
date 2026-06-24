@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-ll-eat",
-  "version": "2.0.0",
-  "description": "今天吃什么/喝什么 — Bing 中文搜图，按时间段推荐，美团级菜单",
+  "version": "2.1.0",
+  "description": "今天吃什么/喝什么 — Unsplash 多级搜图，按时间段推荐，美团级菜单",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": ["lib"],
@@ -14,7 +14,7 @@
   "keywords": ["koishi", "koishi-plugin", "food", "eat", "吃什么"],
   "koishi": {
     "description": {
-      "zh": "今天吃什么/喝什么，Bing 中文搜图精准匹配，按早餐/午餐/晚餐/夜宵时段推荐，100+ 道美团级菜品"
+      "zh": "今天吃什么/喝什么，Unsplash 多级回退搜图，按早/午/晚/夜宵时段过滤，100+ 道美团级中餐"
     }
   },
   "peerDependencies": {
