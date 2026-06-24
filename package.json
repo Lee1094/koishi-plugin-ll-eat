@@ -1,6 +1,6 @@
 {
   "name": "koishi-plugin-ll-eat",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "今天吃什么/喝什么 — 对接 Pexels API，高质量美食饮品图片，建议吃XXX/建议喝XXX",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
