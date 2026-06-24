@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-ll-eat",
-  "version": "1.1.0",
-  "description": "今天吃什么/喝什么 — 对接 Unsplash 免费 API，高质量美食饮品图片随机推荐",
+  "version": "1.2.0",
+  "description": "今天吃什么/喝什么 — 对接 Pexels API，高质量美食饮品图片，建议吃XXX/建议喝XXX",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": ["lib"],
@@ -14,7 +14,7 @@
   "keywords": ["koishi", "koishi-plugin", "food", "eat", "吃什么"],
   "koishi": {
     "description": {
-      "zh": "今天吃什么/喝什么，对接 Unsplash API，随机返回高质量中餐美食饮品图片"
+      "zh": "今天吃什么/喝什么，对接 Pexels API，随机返回高质量美食饮品图片，显示建议吃XXX"
     }
   },
   "peerDependencies": {
