@@ -221,7 +221,9 @@ export function apply(ctx: Context, config: Config) {
       })
       const imgs = extractXcfImages(html)
       if (imgs.length) return imgs[0]
-      logger.warn(`下厨房 无图 [${keyword}]`)
+      // 调试：看看返回了什么
+      const preview = html.slice(0, 300).replace(/\n/g, ' ')
+      logger.warn(`下厨房 无图 [${keyword}] HTML前300: ${preview}`)
       return null
     } catch (e: any) {
       logger.warn(`下厨房 失败 [${keyword}]: ${e?.message || e}`)
