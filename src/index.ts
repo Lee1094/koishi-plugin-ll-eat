@@ -1,6 +1,7 @@
-import { Context, Schema } from 'koishi'
+import { Context, Schema, h } from 'koishi'
 
 export interface Config {
+  unsplashKey: string
   useKeyword: boolean
   useCommand: boolean
   foodsKeyword: string[]
@@ -9,6 +10,8 @@ export interface Config {
 }
 
 export const Config: Schema<Config> = Schema.object({
+  unsplashKey: Schema.string().role('secret')
+    .description('Unsplash Access Key（https://unsplash.com/developers 免费注册）').required(),
   useKeyword: Schema.boolean().description('启用关键词触发（如"吃什么""喝什么"）').default(true),
   useCommand: Schema.boolean().description('启用命令触发').default(true),
   foodsKeyword: Schema.array(Schema.string()).role('table')
@@ -22,111 +25,68 @@ export const name = 'll-eat'
 
 /* ────── 吃得起的美食库 ────── */
 
-const FOODS = [
-  // === 盖饭 / 炒饭 ===
-  '宫保鸡丁盖饭', '鱼香肉丝盖饭', '红烧肉盖饭', '番茄鸡蛋盖饭', '青椒肉丝盖饭',
-  '回锅肉盖饭', '麻婆豆腐盖饭', '糖醋里脊盖饭', '土豆牛肉盖饭', '黄焖鸡米饭',
-  '肉末茄子盖饭', '榨菜肉丝盖饭', '芹菜香干盖饭', '蒜薹肉丝盖饭', '酸豆角肉末盖饭',
-  '鸡蛋炒饭', '扬州炒饭', '酱油炒饭', '虾仁炒饭', '菠萝炒饭',
-  '老干妈炒饭', '咖喱炒饭', '腊肉炒饭', '香肠炒饭', '什锦炒饭',
-
-  // === 面类 ===
-  '兰州拉面', '红烧牛肉面', '重庆小面', '担担面', '炸酱面',
-  '油泼面', '刀削面', '阳春面', '片儿川', '葱油拌面',
-  '热干面', '燃面', '臊子面', '烩面', '云吞面',
-  '酸辣面', '鸡丝凉面', '炒面', '干炒牛河', '海鲜炒面',
-  '番茄鸡蛋面', '雪菜肉丝面', '肥肠面', '排骨面', '牛腩面',
-
-  // === 饺子 / 包子 / 面点 ===
-  '猪肉大葱水饺', '韭菜鸡蛋水饺', '三鲜水饺', '酸汤水饺', '煎饺',
-  '小笼包', '鲜肉包子', '叉烧包', '灌汤包', '生煎包',
-  '锅贴', '馄饨', '红油抄手', '肉夹馍', '馒头配咸菜',
-  '花卷', '葱油饼', '煎饼果子', '手抓饼', '蒸饺',
-
-  // === 炒菜 ===
-  '地三鲜', '干煸四季豆', '手撕包菜', '酸辣土豆丝', '西红柿炒鸡蛋',
-  '青椒土豆丝', '蚂蚁上树', '家常豆腐', '虎皮青椒', '蒜蓉西兰花',
-  '醋溜白菜', '蚝油生菜', '干锅花菜', '茄子煲', '韭菜炒鸡蛋',
-  '香干炒肉', '木须肉', '农家小炒肉', '尖椒炒蛋', '蛋炒饭（菜）',
-
-  // === 砂锅 / 煲类 ===
-  '沙县大排饭', '沙县鸡腿饭', '沙县馄饨', '沙县拌面', '沙县蒸饺',
-  '砂锅豆腐', '砂锅丸子', '砂锅米线', '煲仔饭', '腊味合蒸饭',
-  '皮蛋瘦肉粥', '香菇鸡肉粥', '八宝粥', '小米南瓜粥', '白粥配榨菜',
-
-  // === 快餐 / 简餐 ===
-  '黄焖鸡米饭', '沙县小吃全套', '麻辣烫', '冒菜', '关东煮',
-  '酸辣粉', '螺蛳粉', '桂林米粉', '云南米线', '过桥米线',
-  '牛杂面', '羊杂汤', '淮南牛肉汤', '鸭血粉丝汤', '老鸭粉丝汤',
-  '麻辣香锅', '麻辣拌', '张亮麻辣烫', '杨国福麻辣烫', '呷哺呷哺小火锅',
-
-  // === 烧烤 / 炸物 ===
-  '烤面筋', '烤鱿鱼', '烤鸡翅', '烤羊肉串', '烤茄子',
-  '炸鸡排', '炸鸡腿', '炸薯条', '炸鸡米花', '炸春卷',
-  '烤冷面', '铁板鱿鱼', '臭豆腐', '狼牙土豆', '炸鲜奶',
-
-  // === 凉菜 / 小吃 ===
-  '拍黄瓜', '凉拌腐竹', '凉拌木耳', '皮蛋豆腐', '夫妻肺片',
-  '凉皮', '牛筋面', '擀面皮', '肉夹馍', '凉面',
-  '泡菜', '腌萝卜', '花生米', '毛豆', '海带丝',
-
-  // === 火锅 ===
-  '重庆老火锅（小份）', '麻辣火锅', '清汤火锅', '菌汤火锅', '番茄火锅',
-  '串串香', '钵钵鸡', '冷锅串串', '转转火锅', '自助小火锅',
-
-  // === 早餐 ===
-  '油条豆浆', '豆腐脑', '包子小米粥', '鸡蛋灌饼', '手抓饼',
-  '煎饼果子', '茶叶蛋', '糯米饭团', '肉粽', '烧麦',
-  '肠粉', '豆皮', '春卷', '萝卜丝饼', '麻团',
-
-  // === 地方特色 ===
-  '东北乱炖', '锅包肉', '小鸡炖蘑菇', '猪肉炖粉条', '大拉皮',
-  '西安肉夹馍', '西安凉皮', '西安羊肉泡馍', '武汉热干面', '武汉豆皮',
-  '湖南剁椒鱼头', '湖南小炒肉', '四川水煮肉片', '四川回锅肉', '四川麻婆豆腐',
-  '云南过桥米线', '广东白切鸡', '广东叉烧饭', '北京炸酱面', '北京烤鸭卷饼',
-  '上海生煎包', '天津煎饼果子', '新疆大盘鸡', '兰州拉面', '沙县小吃',
-
-  // === 自选 / 食堂 ===
-  '两荤一素快餐', '三荤一素快餐', '称菜自选', '自助快餐', '食堂大锅饭',
-  '盒饭', '饭团', '便当', '轻食沙拉', '木桶饭',
+const FOOD_QUERIES = [
+  // 盖饭/炒饭 — 用英文搜 Unsplash 更准
+  'Kung Pao chicken rice', 'mapo tofu rice', 'braised pork rice', 'tomato egg rice',
+  'twice cooked pork', 'egg fried rice', 'Yangzhou fried rice', 'shrimp fried rice',
+  'curry fried rice', 'pineapple fried rice', 'soy sauce fried rice',
+  // 面
+  'Lanzhou beef noodles', 'braised beef noodle', 'Chongqing noodles', 'dan dan noodles',
+  'zhajiang noodles', 'hot dry noodles Wuhan', 'lo mein', 'chow mein',
+  'beef chow fun', 'seafood noodle soup', 'wonton noodle soup',
+  // 饺子包子
+  'Chinese dumplings', 'steamed pork buns', 'xiaolongbao', 'pan fried dumplings',
+  'sheng jian bao', 'wonton soup', 'Chinese meat pie roujiamo',
+  // 炒菜
+  'kung pao chicken', 'mapo tofu', 'sweet sour pork', 'stir fry green beans',
+  'scrambled egg tomato China', 'shredded potato stir fry', 'beef broccoli stir fry',
+  'home style tofu', 'di san xian potato eggplant pepper', 'garlic bok choy',
+  // 火锅/麻辣烫
+  'Chinese hotpot', 'Sichuan hotpot', 'mala tang', 'chuan chuan hotpot',
+  // 快餐
+  'crossing bridge noodles', 'Guilin rice noodles', 'Luosifen snail noodles',
+  'sour spicy noodles', 'Lanzhou beef noodle soup', 'Malatang spicy',
+  // 烧烤小吃
+  'Chinese BBQ skewers lamb', 'Chinese fried chicken', 'Chinese street food',
+  'stinky tofu', 'jianbing Chinese crepe', 'Chinese cold noodles',
+  // 地方菜
+  'guo bao rou', 'Dongbei stew', 'Chinese steamed fish head chili',
+  'Sichuan boiled beef', 'Cantonese white cut chicken', 'Peking duck wrap',
+  'Xinjiang big plate chicken', 'char siu BBQ pork rice',
+  // 粥
+  'congee century egg', 'Chinese rice porridge', 'chicken mushroom congee',
+  // 早餐
+  'soy milk youtiao', 'tofu pudding China', 'rice dumpling zongzi',
+  'rice noodle roll cheung fun', 'Chinese breakfast pancake', 'tea egg China',
 ]
 
-const DRINKS = [
-  // === 奶茶 ===
-  '珍珠奶茶', '椰果奶茶', '红豆奶茶', '布丁奶茶', '芋圆奶茶',
-  '黑糖珍珠奶茶', '抹茶奶茶', '鸳鸯奶茶', '丝袜奶茶', '原味奶茶',
-  '杨枝甘露', '芒果养乐多', '柠檬绿茶', '金桔柠檬', '百香果绿茶',
-  '烧仙草', '双皮奶', '冰粉', '凉虾', '四果汤',
-
-  // === 果汁 ===
-  '鲜榨橙汁', '西瓜汁', '芒果汁', '苹果汁', '葡萄汁',
-  '胡萝卜汁', '番茄汁', '雪梨汁', '草莓汁', '蓝莓汁',
-
-  // === 咖啡 ===
-  '美式咖啡', '拿铁', '卡布奇诺', '摩卡', '冷萃咖啡',
-  '生椰拿铁', 'Dirty', '澳白', '美式冰咖', '速溶咖啡',
-
-  // === 茶 ===
-  '冰红茶', '冰绿茶', '茉莉花茶', '乌龙茶', '铁观音',
-  '大麦茶', '菊花茶', '柠檬茶', '蜜桃乌龙茶', '桂花绿茶',
-
-  // === 奶 / 酸奶 ===
-  '纯牛奶', '酸奶', '草莓酸奶', '黄桃酸奶', '养乐多',
-
-  // === 汽水 ===
-  '可乐', '雪碧', '芬达', '北冰洋', '冰峰',
-  '王老吉', '加多宝', '酸梅汤', '椰汁', '豆奶',
-
-  // === 气泡 / 苏打 ===
-  '气泡水', '苏打水', '盐汽水', '汤力水', '元气森林',
-
-  // === 酒类（便宜吃得起版本） ===
-  '勇闯天涯啤酒', '青岛啤酒', '哈尔滨啤酒', '雪花啤酒', '珠江啤酒',
-  '二锅头', '江小白', '黄酒半斤', '梅子酒', '米酒',
-
-  // === 其他 ===
-  '矿泉水', '纯净水', '温开水', '凉白开', '白开水',
+const DRINK_QUERIES = [
+  // 奶茶
+  'bubble tea', 'pearl milk tea', 'brown sugar milk tea', 'matcha latte',
+  'mango pomelo sago', 'taro bubble tea',
+  // 果汁
+  'fresh watermelon juice', 'fresh orange juice', 'mango smoothie',
+  'strawberry juice drink', 'fresh juice China',
+  // 咖啡
+  'latte art', 'cappuccino coffee', 'cold brew coffee', 'coconut latte',
+  // 茶
+  'Chinese tea', 'jasmine tea', 'lemon iced tea', 'Oolong tea',
+  'chrysanthemum tea', 'ice tea glass',
+  // 酸奶
+  'yogurt drink', 'Chinese yogurt',
+  // 汽水
+  'Coca Cola glass', 'ice cold soda', 'Beijing Arctic Ocean soda',
+  'Chinese herbal tea Wanglaoji',
+  // 啤酒
+  'Tsingtao beer', 'Chinese beer glass', 'craft beer bar',
 ]
+
+interface CachedItem {
+  name: string
+  imageUrl: string
+  author: string
+  authorUrl: string
+}
 
 function pickOne<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
@@ -135,22 +95,117 @@ function pickOne<T>(arr: T[]): T {
 export function apply(ctx: Context, config: Config) {
   const logger = ctx.logger('ll-eat')
 
-  function pickFood() {
-    return pickOne(FOODS)
+  let foodCache: CachedItem[] = []
+  let drinkCache: CachedItem[] = []
+  let refreshing = false
+
+  /* ── 从 Unsplash 搜索图片 ── */
+  async function searchUnsplash(query: string): Promise<CachedItem | null> {
+    try {
+      const res = await ctx.http.get<{
+        results?: Array<{
+          urls: { regular: string; small: string }
+          alt_description: string
+          user: { name: string; links: { html: string } }
+          links: { download_location: string }
+        }>
+      }>(
+        'https://api.unsplash.com/search/photos',
+        {
+          params: { query, per_page: 5, orientation: 'squarish' },
+          headers: { Authorization: `Client-ID ${config.unsplashKey}` },
+          responseType: 'json',
+          timeout: 10000,
+        },
+      )
+      const results = res?.results
+      if (!results?.length) return null
+      const img = pickOne(results)
+      // 触发 Unsplash 下载计数（合规要求）
+      try {
+        ctx.http.get(img.links.download_location, {
+          headers: { Authorization: `Client-ID ${config.unsplashKey}` },
+          timeout: 5000,
+        })
+      } catch { /* 忽略 */ }
+      return {
+        name: img.alt_description || query,
+        imageUrl: img.urls.regular,
+        author: img.user.name,
+        authorUrl: img.user.links.html,
+      }
+    } catch (e) {
+      logger.debug(`Unsplash 搜索失败 [${query}]:`, e)
+      return null
+    }
   }
 
-  function pickDrink() {
-    return pickOne(DRINKS)
+  /* ── 刷新缓存 ── */
+  async function refreshCache() {
+    if (refreshing) return
+    refreshing = true
+    try {
+      const foods: CachedItem[] = []
+      // 随机选 20 个食物词去搜
+      const shuffled = [...FOOD_QUERIES].sort(() => Math.random() - 0.5).slice(0, 20)
+      for (const q of shuffled) {
+        const item = await searchUnsplash(q)
+        if (item) foods.push(item)
+        if (foods.length >= 15) break
+      }
+      if (foods.length) foodCache = foods
+
+      const drinks: CachedItem[] = []
+      const dShuffled = [...DRINK_QUERIES].sort(() => Math.random() - 0.5).slice(0, 12)
+      for (const q of dShuffled) {
+        const item = await searchUnsplash(q)
+        if (item) drinks.push(item)
+        if (drinks.length >= 8) break
+      }
+      if (drinks.length) drinkCache = drinks
+
+      logger.info(`缓存已刷新：食物 ${foodCache.length} 图片，饮品 ${drinkCache.length} 图片`)
+    } catch (e) {
+      logger.warn('刷新缓存失败:', e)
+    } finally {
+      refreshing = false
+    }
   }
+
+  /* ── 发送图片 ── */
+  function formatItem(item: CachedItem): string {
+    return h.image(item.imageUrl) +
+      `\n🍚 ${item.name}\n📷 Unsplash @${item.author}`
+  }
+
+  async function sendFood(): Promise<string> {
+    if (!foodCache.length) await refreshCache()
+    if (!foodCache.length) return '🍚 暂时没有美食推荐，请稍后再试~'
+    const item = pickOne(foodCache)
+    return formatItem(item)
+  }
+
+  async function sendDrink(): Promise<string> {
+    if (!drinkCache.length) await refreshCache()
+    if (!drinkCache.length) return '🥤 暂时没有饮品推荐，请稍后再试~'
+    const item = pickOne(drinkCache)
+    return formatItem(item)
+  }
+
+  /* ── 启动时加载 + 每 2 小时刷新 ── */
+  refreshCache()
+  setInterval(() => refreshCache(), 2 * 60 * 60 * 1000)
 
   /* ── 命令模式 ── */
   if (config.useCommand) {
     const cmd = ctx.command(config.commandName)
       .alias('吃', '喝', '吃啥', '喝啥', '吃什么', '喝什么')
 
-    cmd.subcommand('.food', '今天吃什么').action(() => `🍚 今天吃：**${pickFood()}**`)
+    cmd.subcommand('.food', '今天吃什么 — Unsplash 美食图片')
+      .action(async () => sendFood())
 
-    cmd.subcommand('.drink', '今天喝什么').action(() => `🥤 今天喝：**${pickDrink()}**`)
+    cmd.subcommand('.drink', '今天喝什么 — Unsplash 饮品图片')
+      .action(async () => sendDrink())
   }
 
   /* ── 关键词触发 ── */
@@ -159,17 +214,13 @@ export function apply(ctx: Context, config: Config) {
       const text = session.content || ''
       if (typeof text !== 'string' || !text.trim()) return next()
 
-      // 食物关键词
-      const hitFood = config.foodsKeyword.some(kw => text.includes(kw))
-      if (hitFood) {
-        await session.send(`🍚 ${pickFood()}  — 今天吃这个吧！`)
+      if (config.foodsKeyword.some(kw => text.includes(kw))) {
+        await session.send(await sendFood())
         return next()
       }
 
-      // 饮品关键词
-      const hitDrink = config.drinksKeyword.some(kw => text.includes(kw))
-      if (hitDrink) {
-        await session.send(`🥤 ${pickDrink()}  — 今天喝这个吧！`)
+      if (config.drinksKeyword.some(kw => text.includes(kw))) {
+        await session.send(await sendDrink())
         return next()
       }
 
@@ -177,5 +228,5 @@ export function apply(ctx: Context, config: Config) {
     })
   }
 
-  logger.info(`已启动，美食 ${FOODS.length} 种，饮品 ${DRINKS.length} 种`)
+  logger.info(`已启动，美食 ${FOOD_QUERIES.length} 词库，饮品 ${DRINK_QUERIES.length} 词库`)
 }
