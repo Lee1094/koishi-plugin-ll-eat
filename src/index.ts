@@ -315,10 +315,12 @@ export function apply(ctx: Context, config: Config) {
     const text = session.content || ''
     if (typeof text !== 'string' || !text.trim()) return next()
     if (config.foodsKeyword.some(kw => text.includes(kw))) {
+      try { (ctx as any)['ll-analytics']?.recordTrigger('ll-eat', '食物') } catch { /* */ }
       await session.send(await sendFood())
       return next()
     }
     if (config.drinksKeyword.some(kw => text.includes(kw))) {
+      try { (ctx as any)['ll-analytics']?.recordTrigger('ll-eat', '饮品') } catch { /* */ }
       await session.send(await sendDrink())
       return next()
     }
